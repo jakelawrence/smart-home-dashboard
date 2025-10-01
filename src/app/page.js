@@ -1,103 +1,313 @@
-import Image from "next/image";
+"use client";
+import React, { useState, useEffect } from "react";
+import { Clock, Cloud, Car, Calendar, Sun, CloudRain, Wind, Droplets } from "lucide-react";
 
-export default function Home() {
+// CONFIGURATION FILE - Edit this to customize your dashboard
+const DASHBOARD_CONFIG = {
+  // Your home location for commute calculations
+  homeLocation: "2727 N Mainplace Dr, Santa Ana",
+
+  // Your work location
+  workLocation: "456 Office Blvd, Your City",
+
+  // Commute display hours (24-hour format)
+  commuteStartHour: 7,
+  commuteEndHour: 9,
+
+  // Widget configuration - easily add/remove widgets here
+  widgets: [
+    {
+      id: "clock",
+      name: "Clock",
+      enabled: true,
+      size: "large", // small, medium, large
+      alwaysShow: true,
+    },
+    {
+      id: "weather",
+      name: "Weather",
+      enabled: true,
+      size: "large",
+      alwaysShow: true,
+      // You'll need to get a free API key from openweathermap.org
+      apiKey: "YOUR_OPENWEATHER_API_KEY",
+      city: "Your City",
+      units: "imperial", // imperial for °F, metric for °C
+    },
+    {
+      id: "commute",
+      name: "Commute",
+      enabled: true,
+      size: "large",
+      showOnlyDuringHours: true, // Only show during commute hours
+      // You'll need a Google Maps API key
+      apiKey: "YOUR_GOOGLE_MAPS_API_KEY",
+    },
+    {
+      id: "calendar",
+      name: "Calendar",
+      enabled: true,
+      size: "large",
+      showAfterHour: 9, // Show after 9 AM
+      // You'll need Google Calendar API credentials
+      calendarId: "primary", // or your specific calendar ID
+      apiKey: "YOUR_GOOGLE_CALENDAR_API_KEY",
+    },
+  ],
+
+  // Display settings
+  darkMode: true,
+  refreshInterval: 60000, // Refresh data every 60 seconds
+};
+
+// Clock Widget
+const ClockWidget = () => {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-8 text-white">
+      <div className="flex items-center gap-3 mb-4">
+        <Clock className="w-8 h-8" />
+        <h2 className="text-2xl font-bold">Time</h2>
+      </div>
+      <div className="text-6xl font-bold mb-2">{time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</div>
+      <div className="text-2xl opacity-90">{time.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div>
+    </div>
+  );
+};
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+// Weather Widget
+const WeatherWidget = ({ config }) => {
+  const [weather, setWeather] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      if (!config.apiKey || config.apiKey === "YOUR_OPENWEATHER_API_KEY") {
+        setWeather({
+          temp: 72,
+          description: "Demo Mode",
+          humidity: 65,
+          windSpeed: 8,
+          icon: "demo",
+        });
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${config.city}&appid=${config.apiKey}&units=${config.units}`);
+        const data = await response.json();
+        setWeather({
+          temp: Math.round(data.main.temp),
+          description: data.weather[0].description,
+          humidity: data.main.humidity,
+          windSpeed: Math.round(data.wind.speed),
+          icon: data.weather[0].main,
+        });
+      } catch (error) {
+        console.error("Weather fetch error:", error);
+      }
+      setLoading(false);
+    };
+
+    fetchWeather();
+    const interval = setInterval(fetchWeather, DASHBOARD_CONFIG.refreshInterval);
+    return () => clearInterval(interval);
+  }, [config]);
+
+  if (loading) return <div className="bg-gray-800 rounded-2xl p-8 text-white">Loading weather...</div>;
+
+  const getWeatherIcon = () => {
+    switch (weather.icon) {
+      case "Rain":
+        return <CloudRain className="w-16 h-16" />;
+      case "Clear":
+        return <Sun className="w-16 h-16" />;
+      default:
+        return <Cloud className="w-16 h-16" />;
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl p-8 text-white">
+      <div className="flex items-center gap-3 mb-4">
+        {getWeatherIcon()}
+        <div>
+          <h2 className="text-2xl font-bold">Weather</h2>
+          <p className="text-lg opacity-90 capitalize">{weather.description}</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+      <div className="text-6xl font-bold mb-4">
+        {weather.temp}°{config.units === "imperial" ? "F" : "C"}
+      </div>
+      <div className="grid grid-cols-2 gap-4 text-lg">
+        <div className="flex items-center gap-2">
+          <Droplets className="w-5 h-5" />
+          <span>{weather.humidity}% Humidity</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Wind className="w-5 h-5" />
+          <span>{weather.windSpeed} mph</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Commute Widget
+const CommuteWidget = ({ config }) => {
+  const [commute, setCommute] = useState(null);
+
+  useEffect(() => {
+    const fetchCommute = async () => {
+      if (!config.apiKey || config.apiKey === "YOUR_GOOGLE_MAPS_API_KEY") {
+        setCommute({
+          duration: "25 mins",
+          arrival: new Date(Date.now() + 25 * 60000).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          traffic: "Light traffic",
+        });
+        return;
+      }
+
+      // Real API call would go here
+      try {
+        // const response = await fetch(...);
+        // Parse and set real data
+      } catch (error) {
+        console.error("Commute fetch error:", error);
+      }
+    };
+
+    fetchCommute();
+    const interval = setInterval(fetchCommute, DASHBOARD_CONFIG.refreshInterval);
+    return () => clearInterval(interval);
+  }, [config]);
+
+  if (!commute) return null;
+
+  return (
+    <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-8 text-white">
+      <div className="flex items-center gap-3 mb-4">
+        <Car className="w-8 h-8" />
+        <h2 className="text-2xl font-bold">Commute to Work</h2>
+      </div>
+      <div className="text-5xl font-bold mb-2">{commute.duration}</div>
+      <div className="text-2xl mb-4">Arrive by {commute.arrival}</div>
+      <div className="text-lg opacity-90">{commute.traffic}</div>
+    </div>
+  );
+};
+
+// Calendar Widget
+const CalendarWidget = ({ config }) => {
+  const [events, setEvents] = useState([]);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      if (!config.apiKey || config.apiKey === "YOUR_GOOGLE_CALENDAR_API_KEY") {
+        setEvents([
+          { id: 1, title: "Team Meeting", time: "10:00 AM", duration: "1 hour" },
+          { id: 2, title: "Lunch with Client", time: "12:30 PM", duration: "1.5 hours" },
+          { id: 3, title: "Project Review", time: "3:00 PM", duration: "45 mins" },
+        ]);
+        return;
+      }
+
+      // Real API call would go here
+      try {
+        // const response = await fetch(...);
+        // Parse and set real data
+      } catch (error) {
+        console.error("Calendar fetch error:", error);
+      }
+    };
+
+    fetchEvents();
+    const interval = setInterval(fetchEvents, DASHBOARD_CONFIG.refreshInterval);
+    return () => clearInterval(interval);
+  }, [config]);
+
+  return (
+    <div className="bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl p-8 text-white">
+      <div className="flex items-center gap-3 mb-6">
+        <Calendar className="w-8 h-8" />
+        <h2 className="text-2xl font-bold">Today's Events</h2>
+      </div>
+      <div className="space-y-4">
+        {events.length === 0 ? (
+          <p className="text-xl opacity-90">No events scheduled</p>
+        ) : (
+          events.map((event) => (
+            <div key={event.id} className="bg-white/20 rounded-lg p-4">
+              <div className="font-bold text-xl mb-1">{event.title}</div>
+              <div className="text-lg opacity-90">
+                {event.time} • {event.duration}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Main Dashboard Component
+export default function Dashboard() {
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentHour(new Date().getHours());
+    }, 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+
+  const shouldShowWidget = (widget) => {
+    if (!widget.enabled) return false;
+    if (widget.alwaysShow) return true;
+
+    if (widget.showOnlyDuringHours) {
+      return currentHour >= DASHBOARD_CONFIG.commuteStartHour && currentHour < DASHBOARD_CONFIG.commuteEndHour;
+    }
+
+    if (widget.showAfterHour) {
+      return currentHour >= widget.showAfterHour;
+    }
+
+    return true;
+  };
+
+  const renderWidget = (widget) => {
+    switch (widget.id) {
+      case "clock":
+        return <ClockWidget key={widget.id} />;
+      case "weather":
+        return <WeatherWidget key={widget.id} config={widget} />;
+      case "commute":
+        return <CommuteWidget key={widget.id} config={widget} />;
+      case "calendar":
+        return <CalendarWidget key={widget.id} config={widget} />;
+      default:
+        return null;
+    }
+  };
+
+  const visibleWidgets = DASHBOARD_CONFIG.widgets.filter(shouldShowWidget);
+
+  return (
+    <div className={`min-h-screen p-6 ${DASHBOARD_CONFIG.darkMode ? "bg-gray-900" : "bg-gray-100"}`}>
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{visibleWidgets.map((widget) => renderWidget(widget))}</div>
+      </div>
     </div>
   );
 }
