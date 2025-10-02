@@ -22,8 +22,8 @@ export async function GET(request) {
       const result = data.rows[0].elements[0];
 
       return Response.json({
-        duration: result.duration.text,
-        durationValue: result.duration.value,
+        duration: result.duration_in_traffic.text,
+        durationValue: result.duration_in_traffic.value,
         distance: result.distance.text,
         traffic: result.duration_in_traffic?.text || result.duration.text,
       });

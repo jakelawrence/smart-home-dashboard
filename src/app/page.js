@@ -157,7 +157,6 @@ const WeatherWidget = ({ config }) => {
 // Commute Widget
 const CommuteWidget = ({ config }) => {
   const [commute, setCommute] = useState(null);
-
   useEffect(() => {
     const fetchCommute = async () => {
       try {
@@ -199,9 +198,8 @@ const CommuteWidget = ({ config }) => {
         <Car className="w-8 h-8" />
         <h2 className="text-2xl font-bold">Commute to Work</h2>
       </div>
-      <div className="text-5xl font-bold mb-2">{commute.duration}</div>
+      <div className="text-5xl font-bold mb-2">{commute.traffic}</div>
       <div className="text-2xl mb-4">Arrive by {commute.arrival}</div>
-      <div className="text-lg opacity-90">{commute.traffic}</div>
     </div>
   );
 };
@@ -221,10 +219,16 @@ const CalendarWidget = ({ config }) => {
         return;
       }
 
-      // Real API call would go here
       try {
-        // const response = await fetch(...);
-        // Parse and set real data
+        const response = await fetch(`/api/calendar?calendarId=${encodeURIComponent(config.calendarId)}`);
+        const data = await response.json();
+
+        if (data.error) {
+          console.error("Calendar error:", data.error);
+          return;
+        }
+
+        setEvents(data.events);
       } catch (error) {
         console.error("Calendar fetch error:", error);
       }
