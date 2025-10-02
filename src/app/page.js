@@ -4,12 +4,6 @@ import { Clock, Cloud, Car, Calendar, Sun, CloudRain, Wind, Droplets } from "luc
 
 // CONFIGURATION FILE - Edit this to customize your dashboard
 const DASHBOARD_CONFIG = {
-  // Your home location for commute calculations
-  homeLocation: "2727 N Mainplace Dr, Santa Ana",
-
-  // Your work location
-  workLocation: "13155 Rail13155 Railroad Ave, Bassett",
-
   // Commute display hours (24-hour format)
   commuteStartHour: 7,
   commuteEndHour: 9,
@@ -35,11 +29,11 @@ const DASHBOARD_CONFIG = {
     {
       id: "commute",
       name: "Commute",
+      origin: "2727 N Mainplace Dr, Santa Ana",
+      destination: "13155 Rail13155 Railroad Ave, Bassett",
       enabled: true,
       size: "large",
-      showOnlyDuringHours: true, // Only show during commute hours
-      // You'll need a Google Maps API key
-      apiKey: "YOUR_GOOGLE_MAPS_API_KEY",
+      showOnlyDuringHours: false, // Only show during commute hours
     },
     {
       id: "calendar",
@@ -49,7 +43,7 @@ const DASHBOARD_CONFIG = {
       showAfterHour: 9, // Show after 9 AM
       // You'll need Google Calendar API credentials
       calendarId: "primary", // or your specific calendar ID
-      apiKey: "YOUR_GOOGLE_CALENDAR_API_KEY",
+      apiKey: "AIzaSyA5FgF2gpYnowpWZIHb6VLDqbInsf_GlE8",
     },
   ],
 
@@ -166,22 +160,27 @@ const CommuteWidget = ({ config }) => {
 
   useEffect(() => {
     const fetchCommute = async () => {
-      if (!config.apiKey || config.apiKey === "YOUR_GOOGLE_MAPS_API_KEY") {
+      try {
+        const response = await fetch(
+          `/api/commute?origin=${encodeURIComponent(config.origin)}&destination=${encodeURIComponent(config.destination)}`
+        );
+        const data = await response.json();
+
+        if (data.error) {
+          console.error("Commute error:", data.error);
+          return;
+        }
+
+        const arrivalTime = new Date(Date.now() + data.durationValue * 1000);
+
         setCommute({
-          duration: "25 mins",
-          arrival: new Date(Date.now() + 25 * 60000).toLocaleTimeString("en-US", {
+          duration: data.duration,
+          arrival: arrivalTime.toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
           }),
-          traffic: "Light traffic",
+          traffic: data.traffic,
         });
-        return;
-      }
-
-      // Real API call would go here
-      try {
-        // const response = await fetch(...);
-        // Parse and set real data
       } catch (error) {
         console.error("Commute fetch error:", error);
       }
