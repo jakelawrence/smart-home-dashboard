@@ -8,7 +8,7 @@ const DASHBOARD_CONFIG = {
   homeLocation: "2727 N Mainplace Dr, Santa Ana",
 
   // Your work location
-  workLocation: "456 Office Blvd, Your City",
+  workLocation: "13155 Rail13155 Railroad Ave, Bassett",
 
   // Commute display hours (24-hour format)
   commuteStartHour: 7,
@@ -29,9 +29,7 @@ const DASHBOARD_CONFIG = {
       enabled: true,
       size: "large",
       alwaysShow: true,
-      // You'll need to get a free API key from openweathermap.org
-      apiKey: "YOUR_OPENWEATHER_API_KEY",
-      city: "Your City",
+      city: "Santa Ana, CA",
       units: "imperial", // imperial for °F, metric for °C
     },
     {
@@ -59,6 +57,10 @@ const DASHBOARD_CONFIG = {
   darkMode: true,
   refreshInterval: 60000, // Refresh data every 60 seconds
 };
+
+function formatForUrl(str) {
+  return encodeURIComponent(str);
+}
 
 // Clock Widget
 const ClockWidget = () => {
@@ -88,7 +90,7 @@ const WeatherWidget = ({ config }) => {
 
   useEffect(() => {
     const fetchWeather = async () => {
-      if (!config.apiKey || config.apiKey === "YOUR_OPENWEATHER_API_KEY") {
+      if (!config.city || config.city === "") {
         setWeather({
           temp: 72,
           description: "Demo Mode",
@@ -101,14 +103,19 @@ const WeatherWidget = ({ config }) => {
       }
 
       try {
-        const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${config.city}&appid=${config.apiKey}&units=${config.units}`);
+        const response = await fetch(
+          `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${formatForUrl(
+            config.city
+          )}?unitGroup=us&key=UQALJBBAJ46X5K3VRSLMXQU4P&contentType=json`
+        );
         const data = await response.json();
+        const todayData = data.days[0];
         setWeather({
-          temp: Math.round(data.main.temp),
-          description: data.weather[0].description,
-          humidity: data.main.humidity,
-          windSpeed: Math.round(data.wind.speed),
-          icon: data.weather[0].main,
+          temp: Math.round(todayData.temp),
+          description: todayData.condition,
+          humidity: todayData.humidity,
+          windSpeed: Math.round(todayData.windspeed),
+          icon: todayData.icon,
         });
       } catch (error) {
         console.error("Weather fetch error:", error);
@@ -124,14 +131,7 @@ const WeatherWidget = ({ config }) => {
   if (loading) return <div className="bg-gray-800 rounded-2xl p-8 text-white">Loading weather...</div>;
 
   const getWeatherIcon = () => {
-    switch (weather.icon) {
-      case "Rain":
-        return <CloudRain className="w-16 h-16" />;
-      case "Clear":
-        return <Sun className="w-16 h-16" />;
-      default:
-        return <Cloud className="w-16 h-16" />;
-    }
+    return <img src={`/weather-icons/${weather.icon.toLowerCase()}.png`} alt={weather.description} className="w-16 h-16" />;
   };
 
   return (
